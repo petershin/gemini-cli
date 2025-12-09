@@ -11,11 +11,13 @@ import { theme } from '../semantic-colors.js';
 import type {
   CommandContext,
   SlashCommand,
-  MessageActionReturn,
   SlashCommandActionReturn,
 } from './types.js';
 import { CommandKind } from './types.js';
-import { decodeTagName } from '@google/gemini-cli-core';
+import {
+  decodeTagName,
+  type MessageActionReturn,
+} from '@google/gemini-cli-core';
 import path from 'node:path';
 import type {
   HistoryItemWithoutId,
@@ -155,7 +157,7 @@ const resumeCommand: SlashCommand = {
   description:
     'Resume a conversation from a checkpoint. Usage: /chat resume <tag>',
   kind: CommandKind.BUILT_IN,
-  autoExecute: false,
+  autoExecute: true,
   action: async (context, args) => {
     const tag = args.trim();
     if (!tag) {
@@ -239,7 +241,7 @@ const deleteCommand: SlashCommand = {
   name: 'delete',
   description: 'Delete a conversation checkpoint. Usage: /chat delete <tag>',
   kind: CommandKind.BUILT_IN,
-  autoExecute: false,
+  autoExecute: true,
   action: async (context, args): Promise<MessageActionReturn> => {
     const tag = args.trim();
     if (!tag) {

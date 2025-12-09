@@ -17,6 +17,7 @@ import {
   createContentGeneratorConfig,
 } from '../core/contentGenerator.js';
 import { PromptRegistry } from '../prompts/prompt-registry.js';
+import { ResourceRegistry } from '../resources/resource-registry.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -334,6 +335,7 @@ export class Config {
   private allowedMcpServers: string[];
   private blockedMcpServers: string[];
   private promptRegistry!: PromptRegistry;
+  private resourceRegistry!: ResourceRegistry;
   private agentRegistry!: AgentRegistry;
   private sessionId: string;
   private fileSystemService: FileSystemService;
@@ -385,6 +387,7 @@ export class Config {
   private ideMode: boolean;
 
   private inFallbackMode = false;
+  private _activeModel: string;
   private readonly maxSessionTurns: number;
   private readonly listSessions: boolean;
   private readonly deleteSession: string | undefined;
@@ -509,6 +512,7 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
+    this._activeModel = params.model;
     this.enableModelAvailabilityService =
       params.enableModelAvailabilityService ?? false;
     this.enableAgents = params.enableAgents ?? false;
@@ -604,6 +608,7 @@ export class Config {
     }
 
     if (this.telemetrySettings.enabled) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       initializeTelemetry(this);
     }
 
@@ -658,6 +663,7 @@ export class Config {
       await this.getGitService();
     }
     this.promptRegistry = new PromptRegistry();
+    this.resourceRegistry = new ResourceRegistry();
 
     this.agentRegistry = new AgentRegistry(this);
     await this.agentRegistry.initialize();
@@ -824,9 +830,26 @@ export class Config {
   setModel(newModel: string): void {
     if (this.model !== newModel || this.inFallbackMode) {
       this.model = newModel;
+      // When the user explicitly sets a model, that becomes the active model.
+      this._activeModel = newModel;
       coreEvents.emitModelChanged(newModel);
     }
     this.setFallbackMode(false);
+  }
+
+  getActiveModel(): string {
+    return this._activeModel ?? this.model;
+  }
+
+  setActiveModel(model: string): void {
+    if (this._activeModel !== model) {
+      this._activeModel = model;
+      coreEvents.emitModelChanged(model);
+    }
+  }
+
+  resetTurn(): void {
+    this.modelAvailabilityService.resetTurn();
   }
 
   isInFallbackMode(): boolean {
@@ -914,6 +937,10 @@ export class Config {
 
   getPromptRegistry(): PromptRegistry {
     return this.promptRegistry;
+  }
+
+  getResourceRegistry(): ResourceRegistry {
+    return this.resourceRegistry;
   }
 
   getDebugMode(): boolean {
